@@ -1,82 +1,29 @@
 import json
 import random
 import sys
-
-# ---- relative path
-import pathlib
-
-currentPath = pathlib.Path().absolute()
-
 import datetime
 from datetime import date
 
-today = date.today()
+def days_in_month(year, month):
+    """
+    Find a list of a ll days in a month
+    :param year:
+    :param month:
+    :return:
+    """
+    return []
 
-checkPeriod = 30  # Tne amount of the days that must be checked
-StartDay = today  # The start day
-endDay = StartDay + datetime.timedelta(days=checkPeriod)  # Calculate the end day for check
+# Read the data from the json filee
+def read_wishes(filepath, dates):
+    data = { d : [] for d in dates}
+    with open(filepath) as f:
+        for line in f:
+            line = json.loads(line)
+            for thedate in line["Dates"]:
+                parsed_date = date.fromisoformat(thedate)
+                data[parsed_date].append(line["User"])
 
-# Read the data from the json file
-
-print(currentPath)
-data = []
-with open(sys.argv[1]) as f:
-    for line in f:
-        data.append(json.loads(line))
-
-# Change the data from person to date
-dateDic = {}
-missingDays = []
-
-for person in data:
-    for vagtDay in person["Dates"]:
-        if vagtDay in dateDic.keys():
-            tempList = dateDic[vagtDay]
-            tempList.append(person['User'])
-            dateDic[vagtDay] = tempList
-        else:
-            dateDic[vagtDay] = [person['User']]
-
-sortedDateDic = sorted(dateDic)
-
-print("\n\n List of the days and people allowd for lottery and chosen one:\n\n")
-selection = {}
-PeopleInSecondDay = []
-chekDay = StartDay
-while chekDay != endDay:
-    # datetime.datetime.strptime(regDate, '%Y-%m-%d').date()
-    peopleAllowdForLot = []
-    if str(chekDay) in dateDic.keys():
-        dayPeople = dateDic[str(chekDay)]
-        dayBefore = chekDay + datetime.timedelta(days=-1)
-        if str(dayBefore) in dateDic.keys():
-            for person in dayPeople:
-                if person in dateDic[str(dayBefore)]:
-                    PeopleInSecondDay.append(person + " not allowed day  " + str(chekDay))
-                else:
-                    peopleAllowdForLot.append(person)
-        else:
-            peopleAllowdForLot = dayPeople
-        if len(peopleAllowdForLot) != 0:
-            # chosenOneIndex = random.randrange(len(peopleAllowdForLot))
-            # chosenOne = peopleAllowdForLot[chosenOneIndex]
-            chosenOne = random.choice(peopleAllowdForLot)
-            selection[chekDay] = chosenOne
-            print(str(chekDay), peopleAllowdForLot, " chosen one:", chosenOne)
-        else:
-            missingDays.append(str(chekDay))
-
-
-
-    else:
-        missingDays.append(str(chekDay))
-
-    chekDay = chekDay + datetime.timedelta(days=1)
-
-print("\nPople who are not allowed to participate in specific day:\n\n", PeopleInSecondDay)
-
-print("\n\nDays when nobdoy chosed to work:\n\n", missingDays)
-
+    return data
 
 def assigning_shifts(prefereces, dates, users):
     """
@@ -130,24 +77,30 @@ def print_shifts(shifts, dates):
         print(date, shifts[date])
 
 
-# print("Yes")
-dates = date_range(StartDay, endDay)
-# print(dates)
-preferences = {StartDay: ["Randi"]}
+def find_shifts(preferences, dates):
+    # print("Yes")
+    # print(dates)
+    #preferences = {StartDay: ["Randi"]}
 
-while True:
-    # Try to assing shifts.
+    while True:
+        # Try to assing shifts.
+        shifts = assigning_shifts(preferences, dates, ["Randi", "Christian"])
 
-    shifts = assigning_shifts(preferences, dates, ["Randi", "Christian"])
+        if shifts is not None:
+            return shifts
+        else:
+            # If it does not, delte a preference and try again.
+            key = random.choice(list(preferences))
+            del preferences[key]
 
-    if shifts is None:
-        break
-    else:
-        # If it does not, delte a preference and try again.
-        key = random.choice(list(preferences))
-        del preferences[key]
 
-print_shifts(shifts, dates)
 
 if __name__ == "__main__":
-    print("Hello, world!")
+    today = date(2021, 2, 1)
+    checkPeriod = 30  # Tne amount of the days that must be checked
+    StartDay = today  # The start day
+    endDay = StartDay + datetime.timedelta(days=checkPeriod)  # Calculate the end day for check
+    dates = date_range(StartDay, endDay)
+    data = read_wishes(sys.argv[1], dates)
+    shifts = find_shifts(data, dates)
+    print_shifts(shifts, dates)
